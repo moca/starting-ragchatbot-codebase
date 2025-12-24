@@ -62,6 +62,8 @@ jobs:
           fi
       
       - name: Run Claude Code Review
+        env:
+          DIFF_FILE: ${{ steps.changed-files.outputs.diff_file }}
         run: |
           python - <<'PYTHON_SCRIPT'
           import os
@@ -73,8 +75,12 @@ jobs:
               aws_region=os.getenv("AWS_REGION", "us-east-1")
           )
           
-          # Read the diff file
-          diff_file = "${{ steps.changed-files.outputs.diff_file }}"
+          # Read the diff file from environment variable
+          diff_file = os.getenv("DIFF_FILE", "")
+          if not diff_file:
+              print("No PR number provided for review")
+              exit(0)
+          
           if diff_file and Path(diff_file).exists():
               with open(diff_file, 'r') as f:
                   diff_content = f.read()

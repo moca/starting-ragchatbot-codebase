@@ -58,6 +58,12 @@ jobs:
               print("No query provided")
               exit(0)
           
+          # Limit query length to prevent excessively large inputs
+          MAX_QUERY_LENGTH = 50000
+          if len(query) > MAX_QUERY_LENGTH:
+              query = query[:MAX_QUERY_LENGTH]
+              print(f"Query truncated to {MAX_QUERY_LENGTH} characters")
+          
           print(f"Processing query: {query[:100]}...")
           
           # Call Claude Sonnet 4.5 via Bedrock
@@ -93,18 +99,24 @@ jobs:
               
               const comment = `## 🤖 Claude Sonnet 4.5 Response\n\n${response}\n\n---\n*Powered by AWS Bedrock*`;
               
-              github.rest.issues.createComment({
+              await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: comment
               });
               
-              // Remove the label
-              github.rest.issues.removeLabel({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: 'claude-assist'
-              });
+              // Remove the label (ignore errors if label doesn't exist)
+              try {
+                await github.rest.issues.removeLabel({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'claude-assist'
+                });
+                console.log('Label removed successfully');
+              } catch (error) {
+                console.log('Could not remove label (may have been already removed):', error.message);
+              }
+            }
             }

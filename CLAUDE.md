@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Retrieval-Augmented Generation (RAG) system for course materials that uses ChromaDB for vector storage, Anthropic's Claude with tool use for AI generation, and FastAPI for the backend. Course documents are automatically loaded on startup and made searchable through semantic search.
+A Retrieval-Augmented Generation (RAG) system for course materials that uses ChromaDB for vector storage, AWS Bedrock Claude with tool use for AI generation, and FastAPI for the backend. Course documents are automatically loaded on startup and made searchable through semantic search.
 
 ## Development Commands
 
@@ -13,8 +13,14 @@ A Retrieval-Augmented Generation (RAG) system for course materials that uses Chr
 # Install dependencies
 uv sync
 
-# Create .env file with API key
-echo "ANTHROPIC_API_KEY=your-key-here" > .env
+# Create .env file with AWS credentials
+# For temporary credentials, also include AWS_SESSION_TOKEN
+cat > .env << EOF
+AWS_ACCESS_KEY_ID=your-aws-access-key-id-here
+AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key-here
+AWS_SESSION_TOKEN=your-aws-session-token-here
+AWS_REGION=us-east-1
+EOF
 ```
 
 ### Running the Application
@@ -41,7 +47,7 @@ The application serves both the API (http://localhost:8000/api/*) and the fronte
    - `course_content` - Stores content chunks with metadata (course_title, lesson_number, chunk_index)
    - Key method: `search()` resolves course names via catalog, then searches content with filters
 
-3. **AIGenerator** (`ai_generator.py`) - Claude API integration with tool use
+3. **AIGenerator** (`ai_generator.py`) - AWS Bedrock Claude API integration with tool use
    - Uses tool-based approach where Claude decides when to search
    - Handles tool execution flow: initial response → tool execution → final response
    - System prompt restricts to one search per query
@@ -77,7 +83,7 @@ All settings in `backend/config.py`:
 - `CHUNK_OVERLAP: 100` - Overlap between chunks
 - `MAX_RESULTS: 5` - Search results returned per query
 - `MAX_HISTORY: 2` - Conversation turns to remember
-- `ANTHROPIC_MODEL: "claude-sonnet-4-20250514"` - Claude model version
+- `AWS_BEDROCK_MODEL: "global.anthropic.claude-sonnet-4-20250514-v1:0"` - AWS Bedrock Claude model ID
 - `EMBEDDING_MODEL: "all-MiniLM-L6-v2"` - Sentence transformer model
 
 ## Data Models

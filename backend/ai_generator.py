@@ -2,8 +2,8 @@ import anthropic
 from typing import List, Optional, Dict, Any
 
 class AIGenerator:
-    """Handles interactions with Anthropic's Claude API for generating responses"""
-    
+    """Handles interactions with Anthropic's Claude via AWS Bedrock for generating responses"""
+
     # Static system prompt to avoid rebuilding on each call
     SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to a comprehensive search tool for course information.
 
@@ -28,11 +28,22 @@ All responses must be:
 4. **Example-supported** - Include relevant examples when they aid understanding
 Provide only the direct answer to what was asked.
 """
-    
-    def __init__(self, api_key: str, model: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
+
+    def __init__(self, aws_access_key: str, aws_secret_key: str, aws_session_token: str, aws_region: str, model: str):
+        # Initialize Bedrock client with temporary credentials support
+        client_params = {
+            "aws_access_key": aws_access_key,
+            "aws_secret_key": aws_secret_key,
+            "aws_region": aws_region
+        }
+
+        # Add session token if provided (for temporary credentials)
+        if aws_session_token:
+            client_params["aws_session_token"] = aws_session_token
+
+        self.client = anthropic.AnthropicBedrock(**client_params)
         self.model = model
-        
+
         # Pre-build base API parameters
         self.base_params = {
             "model": self.model,

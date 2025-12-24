@@ -33,7 +33,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install anthropic boto3 python-dotenv
+          pip install anthropic boto3
       
       - name: Get changed files
         id: changed-files
@@ -49,6 +49,9 @@ jobs:
             git fetch origin pull/$PR_NUMBER/head:pr-branch
             git diff origin/${{ github.base_ref }}...pr-branch > /tmp/diff.txt
             echo "diff_file=/tmp/diff.txt" >> $GITHUB_OUTPUT
+          else
+            # No PR number provided, set empty diff_file
+            echo "diff_file=" >> $GITHUB_OUTPUT
           fi
       
       - name: Run Claude Code Review

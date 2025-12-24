@@ -9,7 +9,7 @@ This directory contains GitHub Actions workflows that use Claude Sonnet 4.5 via 
 Automatically reviews pull requests using Claude Sonnet 4.5.
 
 **Triggers:**
-- Automatically on pull request events (opened, synchronized, reopened)
+- Automatically on pull request events (opened, synchronize, reopened)
 - Manually via workflow_dispatch
 
 **Features:**

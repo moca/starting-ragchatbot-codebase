@@ -54,3 +54,29 @@ The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`
 
+## GitHub Actions
+
+This repository includes GitHub Actions workflows that use Claude Sonnet 4.5 via AWS Bedrock:
+
+### 1. Claude Code Review
+Automatically reviews pull requests using Claude AI, providing feedback on code quality, potential bugs, security concerns, and best practices.
+
+**Triggers:** Automatically on pull requests or manually via workflow dispatch
+
+### 2. Claude Assistant
+General-purpose AI assistant that can answer questions about the codebase or help with coding tasks.
+
+**Triggers:** 
+- Add `claude-assist` label to any issue
+- Manually via workflow dispatch with a custom query
+
+### Setup for GitHub Actions
+
+To use these workflows, configure the following GitHub repository secrets:
+- `AWS_ACCESS_KEY_ID` - Your AWS access key ID
+- `AWS_SECRET_ACCESS_KEY` - Your AWS secret access key  
+- `AWS_SESSION_TOKEN` - (Optional) For temporary credentials
+- `AWS_REGION` - (Optional) Defaults to `us-east-1`
+
+For detailed documentation, see [.github/workflows/README.md](.github/workflows/README.md)
+

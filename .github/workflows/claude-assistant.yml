@@ -49,4 +49,6 @@ jobs:
           use_bedrock: "true"
           claude_args: |
             --model anthropic.claude-sonnet-4-20250514-v1:0
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         

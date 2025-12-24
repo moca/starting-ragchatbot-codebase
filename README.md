@@ -72,11 +72,12 @@ General-purpose AI assistant that can answer questions about the codebase or hel
 
 ### Setup for GitHub Actions
 
-To use these workflows, configure the following GitHub repository secrets:
-- `AWS_ACCESS_KEY_ID` - Your AWS access key ID
-- `AWS_SECRET_ACCESS_KEY` - Your AWS secret access key  
-- `AWS_SESSION_TOKEN` - (Optional) For temporary credentials
-- `AWS_REGION` - (Optional) Defaults to `us-east-1`
+These workflows use AWS IAM roles with OIDC for secure authentication. To set up:
 
-For detailed documentation, see [.github/workflows/README.md](.github/workflows/README.md)
+1. **Create AWS IAM OIDC provider and role** (see detailed instructions in [.github/workflows/README.md](.github/workflows/README.md))
+2. **Add the IAM role ARN to GitHub secrets:**
+   - Secret name: `AWS_ROLE_ARN`
+   - Value: Your IAM role ARN (e.g., `arn:aws:iam::123456789012:role/GitHubActions-Claude-Bedrock-Role`)
+
+For detailed setup instructions, troubleshooting, and examples, see [.github/workflows/README.md](.github/workflows/README.md)
 

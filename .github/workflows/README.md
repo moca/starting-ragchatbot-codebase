@@ -55,25 +55,75 @@ General-purpose Claude assistant for answering questions or performing tasks.
 
 ## Setup
 
-### Required GitHub Secrets
+### Required Configuration
 
-Configure the following secrets in your repository settings:
+#### 1. AWS IAM Role Setup
 
-- `AWS_ACCESS_KEY_ID` - Your AWS access key ID
-- `AWS_SECRET_ACCESS_KEY` - Your AWS secret access key
-- `AWS_SESSION_TOKEN` - (Optional) AWS session token for temporary credentials
-- `AWS_REGION` - (Optional) AWS region, defaults to `us-east-1`
+These workflows use AWS IAM roles with OpenID Connect (OIDC) for secure authentication without storing AWS credentials.
 
-**To add secrets:**
+**Step 1: Create IAM OIDC Identity Provider**
+1. Go to AWS IAM Console → Identity Providers → Add provider
+2. Provider type: OpenID Connect
+3. Provider URL: `https://token.actions.githubusercontent.com`
+4. Audience: `sts.amazonaws.com`
+5. Click "Add provider"
+
+**Step 2: Create IAM Role**
+1. Go to IAM → Roles → Create role
+2. Trusted entity type: Web identity
+3. Identity provider: `token.actions.githubusercontent.com`
+4. Audience: `sts.amazonaws.com`
+5. Add condition (optional but recommended):
+   - Key: `token.actions.githubusercontent.com:sub`
+   - Value: `repo:YOUR_ORG/YOUR_REPO:*` (replace with your repo)
+6. Attach policy with Bedrock permissions (see below)
+7. Name the role (e.g., `GitHubActions-Claude-Bedrock-Role`)
+8. Note the Role ARN
+
+**Step 3: Create IAM Policy for Bedrock**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"
+      ]
+    }
+  ]
+}
+```
+
+#### 2. GitHub Repository Configuration
+
+**Required Secret:**
+- `AWS_ROLE_ARN` - The ARN of the IAM role created above (e.g., `arn:aws:iam::123456789012:role/GitHubActions-Claude-Bedrock-Role`)
+
+**Optional Variable:**
+- `AWS_REGION` - AWS region for Bedrock (defaults to `us-east-1`)
+
+**To add secret:**
 1. Go to repository Settings → Secrets and variables → Actions
 2. Click "New repository secret"
-3. Add each required secret
+3. Name: `AWS_ROLE_ARN`
+4. Value: Your IAM role ARN
+5. Click "Add secret"
+
+**To add variable (optional):**
+1. Go to repository Settings → Secrets and variables → Actions → Variables tab
+2. Click "New repository variable"
+3. Name: `AWS_REGION`
+4. Value: Your preferred region (e.g., `us-east-1`)
 
 ### AWS Bedrock Requirements
 
 1. Your AWS account must have access to AWS Bedrock
 2. The Claude Sonnet 4.5 model must be enabled in your region
-3. IAM permissions must allow `bedrock:InvokeModel` for the Claude model
+3. The IAM role must have permissions to invoke the Claude model
 
 ### Model Information
 
@@ -87,6 +137,7 @@ The workflows require the following GitHub permissions:
 - `contents: read` - To read repository code
 - `pull-requests: write` - To comment on pull requests (code review workflow)
 - `issues: write` - To comment on issues (assistant workflow)
+- `id-token: write` - To request OIDC token for AWS authentication
 
 ## Examples
 
@@ -102,7 +153,8 @@ Potential Issues:
 - None identified
 
 Security Concerns:
-- Ensure AWS credentials are properly secured as GitHub secrets
+- Ensure AWS IAM role has minimal required permissions
+- Review trust policy to restrict access to your repository
 
 Suggestions:
 - Consider adding error handling for API failures
@@ -122,17 +174,24 @@ Powered by AWS Bedrock with Claude Sonnet 4.5
 ### Common Issues
 
 1. **Authentication Errors**
-   - Verify AWS credentials are correctly set in GitHub secrets
-   - Check IAM permissions for Bedrock access
-   - Ensure session token is provided if using temporary credentials
+   - Verify `AWS_ROLE_ARN` secret is correctly set in GitHub repository settings
+   - Check IAM role trust policy allows your GitHub repository
+   - Ensure OIDC identity provider is configured in AWS IAM
+   - Verify the role has `bedrock:InvokeModel` permissions
 
-2. **Model Not Available**
+2. **OIDC Token Errors**
+   - Ensure `id-token: write` permission is set in workflow
+   - Verify the OIDC provider audience is `sts.amazonaws.com`
+   - Check that the repository matches the trust policy condition
+
+3. **Model Not Available**
    - Verify Claude Sonnet 4.5 is enabled in your AWS region
    - Check the model ID matches your Bedrock configuration
+   - Ensure the IAM role has access to the specific model ARN
 
-3. **No Response Posted**
+4. **No Response Posted**
    - Check workflow logs for errors
-   - Verify the workflow has required permissions
+   - Verify the workflow has required GitHub permissions
    - Ensure the trigger conditions are met
 
 ## Customization

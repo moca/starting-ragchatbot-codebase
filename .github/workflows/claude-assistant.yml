@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   issues: write
+  id-token: write  # Required for AWS OIDC authentication
 
 jobs:
   claude-assistant:
@@ -23,6 +24,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,29 +42,16 @@ jobs:
       
       - name: Run Claude Assistant
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
           QUERY: ${{ inputs.query || github.event.issue.body }}
         run: |
           python - <<'PYTHON_SCRIPT'
           import os
           import anthropic
           
-          # Initialize Bedrock client with Claude Sonnet 4.5
-          client_params = {
-              "aws_access_key": os.getenv("AWS_ACCESS_KEY_ID"),
-              "aws_secret_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
-              "aws_region": os.getenv("AWS_REGION", "us-east-1")
-          }
-          
-          # Add session token if provided (for temporary credentials)
-          session_token = os.getenv("AWS_SESSION_TOKEN")
-          if session_token:
-              client_params["aws_session_token"] = session_token
-          
-          client = anthropic.AnthropicBedrock(**client_params)
+          # Initialize Bedrock client - credentials auto-configured via AWS role
+          client = anthropic.AnthropicBedrock(
+              aws_region=os.getenv("AWS_REGION", "us-east-1")
+          )
           
           query = os.getenv("QUERY", "")
           if not query.strip():

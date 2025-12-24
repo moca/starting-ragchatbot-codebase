@@ -1,122 +1,32 @@
-name: Claude Code Assistant
+name: Claude Assistant
 
 on:
   issues:
     types: [labeled]
   workflow_dispatch:
-    inputs:
-      query:
-        description: 'Question or task for Claude'
-        required: true
-        type: string
 
 permissions:
   contents: read
   issues: write
-  id-token: write  # Required for AWS OIDC authentication
+  id-token: write
 
 jobs:
-  claude-assistant:
+  assist:
     runs-on: ubuntu-latest
-    name: Ask Claude Sonnet 4.5
     if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'claude-assist')
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: anthropics/claude-code-action@v1
         with:
-          python-version: '3.13'
-      
-      - name: Install dependencies
-        run: |
-          pip install anthropic boto3
-      
-      - name: Run Claude Assistant
+          use_bedrock: "true"
+          claude_args: |
+            --model anthropic.claude-sonnet-4-20250514-v1:0
         env:
-          QUERY: ${{ inputs.query || github.event.issue.body }}
-        run: |
-          python - <<'PYTHON_SCRIPT'
-          import os
-          import anthropic
-          
-          # Initialize Bedrock client - credentials auto-configured via AWS role
-          client = anthropic.AnthropicBedrock(
-              aws_region=os.getenv("AWS_REGION", "us-east-1")
-          )
-          
-          query = os.getenv("QUERY", "")
-          if not query.strip():
-              print("No query provided")
-              exit(0)
-          
-          # Limit query length to prevent excessively large inputs
-          MAX_QUERY_LENGTH = 50000
-          if len(query) > MAX_QUERY_LENGTH:
-              query = query[:MAX_QUERY_LENGTH]
-              print(f"Query truncated to {MAX_QUERY_LENGTH} characters")
-          
-          print(f"Processing query: {query[:100]}...")
-          
-          # Call Claude Sonnet 4.5 via Bedrock
-          response = client.messages.create(
-              model="global.anthropic.claude-sonnet-4-20250514-v1:0",
-              max_tokens=4000,
-              temperature=0,
-              messages=[
-                  {"role": "user", "content": query}
-              ]
-          )
-          
-          answer = response.content[0].text
-          
-          # Save response to file for next step
-          with open('/tmp/claude_response.txt', 'w') as f:
-              f.write(answer)
-          
-          print("\n--- Claude's Response ---")
-          print(answer)
-          PYTHON_SCRIPT
-      
-      - name: Post response to issue
-        if: github.event_name == 'issues'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const responsePath = '/tmp/claude_response.txt';
-            
-            if (fs.existsSync(responsePath)) {
-              const response = fs.readFileSync(responsePath, 'utf8');
-              
-              const comment = `## 🤖 Claude Sonnet 4.5 Response\n\n${response}\n\n---\n*Powered by AWS Bedrock*`;
-              
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-              
-              // Remove the label (ignore errors if label doesn't exist)
-              try {
-                await github.rest.issues.removeLabel({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: 'claude-assist'
-                });
-                console.log('Label removed successfully');
-              } catch (error) {
-                console.log('Could not remove label (may have been already removed):', error.message);
-              }
-            }
-            }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
